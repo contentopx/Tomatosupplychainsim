@@ -57,8 +57,9 @@ Peer-reviewed results from [Suthar et al. 2019](https://doi.org/10.1016/j.postha
 ## ▶ How to Run
 
 # Requires GAMS or AMPL installed
->gams OperationalFL.run
->Ensure pubinput.xls is in the working directory.
+
+gams OperationalFL.run
+Ensure pubinput.xls is in the working directory.
 
 📚 Citation
 If using this model, please cite:
