@@ -69,15 +69,6 @@ This approach bridges **academic modeling** and **data engineering best practice
 
 ---
 
-## 📷 Figures
-**Figure – Mean Profit under Uncertainty:**
-![Profit](../assets/dissertation_page_63.png)
-
-**Figure – Mean PHL under Uncertainty:**
-![PHL](../assets/dissertation_page_64.png)
-
----
-
 ## ▶ How to Run
 # Requires GAMS installed
 gams OperMCordered.run
