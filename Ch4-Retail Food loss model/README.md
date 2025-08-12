@@ -1,5 +1,4 @@
 ## **Ch4-main README**
-```markdown
 # 🛡 Chapter 4 – Robust Optimization for Tomato Loss Reduction
 
 In Chapter 4, I tackled **"What if the worst happens?"**  
@@ -18,11 +17,5 @@ This model uses **Robust Optimization** to make sure our loss-reduction strategi
 ## How to Run
 1. Install Python 3.x and GAMS/AMPL.
 2. Generate input tables:
-   ```bash
    python tablegenRO.py
 Run the robust optimization model:
-
-bash
-Copy
-Edit
-gams RO.run
