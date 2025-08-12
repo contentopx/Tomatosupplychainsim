@@ -1,0 +1,113 @@
+# Monte Carlo Simulation of Retail model
+
+#---------------- #
+#      setup      #
+#---------------- #
+
+reset;
+option show_stats 1;
+
+load C:\Users\rsuthar\Documents\amplide.mswin64\models\amplxl.dll;
+
+option solver cplex;   
+option cplex_options 'display=1 timing=1 timelimit=3600 mipdisplay=2 lpdisplay=1 mipgap=.05 mipbasis=1'; #sensitivity=1
+
+#--------------------- #
+#      read model      #
+#--------------------- #
+
+model retq3cleandemand.mod;
+
+#-------------------- #
+#      read data      #
+#-------------------- #
+
+
+param STRING symbolic := "T";
+#types=['T','TD','TQ','TDQ']
+param nCOL integer > 0;
+let nCOL := 4999;
+#table time IN "amplxl" "C:\Users\rsuthar\Dropbox\RetailModel\freshness561.xlsx" : TIME <- [TIME]; 
+table qual IN "amplxl" "C:\Users\rsuthar\Dropbox\RetailModel\Sensitivityinputs\freshness561.xlsx" : QUAL <- [QUAL]; 
+table scalars {c in 1..nCOL} IN "amplxl" ("C:\Users\rsuthar\Dropbox\RetailModel\Stochastic" & STRING & "\stoc"& STRING & c+1 &".xlsx") : [], pcost, tcost, hcost, e;
+table vectors {c in 1..nCOL} IN "amplxl" ("C:\Users\rsuthar\Dropbox\RetailModel\Stochastic" & STRING & "\stoc"& STRING & c+1 &".xlsx") : [TIME, QUAL], price, qsold, fresh; #demand; #demand=freshness dependent, qsold is distributed
+#table scalars {c in 1..nCOL} IN "amplxl" ("C:\Users\rsuthar\Dropbox\RetailModel\det2.xlsx") : [], pcost, tcost, hcost, e;
+#table vectors {c in 1..nCOL} IN "amplxl" ("C:\Users\rsuthar\Dropbox\RetailModel\det2.xlsx") : [TIME, QUAL], price, qsold, fresh; #demand; #demand=freshness dependent, qsold is distributed
+
+
+read table vectors;
+#read table time;
+read table qual;
+read table scalars;
+#fix qdon[5,5] := 5;
+#fix SD[5] := 6000;
+#fix SD[6] := 10000;
+
+
+#----------------------#
+#      solve model     #
+#----------------------#
+
+#solve;
+#display _solve_elapsed_time;
+
+#param sumSD {1..nCOL};
+#param sumqdon {1..nCOL};
+param sumnotsold {1..nCOL};
+param profit {1..nCOL};
+param SD5 {1..nCOL};
+param SD6 {1..nCOL};
+param sumSD {1..nCOL};
+param sumsold {1..nCOL};
+param sumqdon5 {1..nCOL};
+param sumqdon6 {1..nCOL};
+param sumqdon {1..nCOL};
+param E {1..nCOL};
+
+# nCOL is the number of runs you want for the MC
+
+for {c in 1..nCOL}{
+	read table vectors[c];
+	read table scalars[c];
+	
+	solve;
+	option eexit -10000000000;
+	display _solve_elapsed_time;
+	#let sumSD[c] := sum {q in QUAL} SD[q]; #split
+	#let sumqdon[c] := sum {t in TIME, q in QUAL} qdon[t,q]; #split
+	let {q in QUAL} SD5[c] := SD[5];
+	let {q in QUAL} SD6[c] := SD[6];
+	let sumsold[c] := sum {t in TIME, q in QUAL} sold[t,q];
+	let sumSD[c] := sum {q in QUAL} SD[q];
+	let {q in QUAL} sumqdon5[c] := sum {t in TIME} qdon[t,5];
+	let {q in QUAL} sumqdon6[c] := sum {t in TIME} qdon[t,6];
+	let sumqdon[c] := sum {t in TIME, q in QUAL} qdon[t,q];
+	let sumnotsold[c] := sum {t in TIME, q in QUAL} notSold[t,q];	
+	let profit[c] := retailer_profit;
+	let E[c] := e;
+	
+	display c;
+}
+
+#---------------------------------------------#
+#      Write solution data to spreadsheet     #
+#---------------------------------------------#
+
+display retailer_profit;
+display SD;
+display notSold;
+display price;
+display qdon;
+display sold;
+display sumqdon;
+display sumSD;
+expand >constraints.txt;
+
+table SUMSD OUT "amplxl" ("finalresult" & STRING & ".xlsx") "verbose=1": [run], E, sumSD, sumsold, sumqdon, sumqdon5, sumqdon6, sumnotsold, SD5, SD6, profit;
+
+write table SUMSD;
+
+
+
+
+	

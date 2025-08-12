@@ -1,0 +1,147 @@
+#RUN FILE FOR MONTE CARLO SIMULATION
+
+#Florida tomato scenario
+
+###################################################################
+
+reset;
+option show_stats 1;
+load C:\Users\rsuthar\Documents\amplide.mswin64\models\amplxl.dll;
+model CleanOpermodelPHL.mod;
+
+# Iteration scenario index #
+param STRING symbolic := "td";
+
+# Reading Data from Excel File #
+
+table CROP IN "amplxl" "input2.xlsx": CROP <- [CROP], Cfix, Psalv, Charv, Ccrop, LRH, LBH;
+table PROD IN "amplxl" "input2.xlsx": PROD <- [PROD], Pcrop, RW, RC, LRP, Cpack, Ccase, Cwater, Cenergy;
+table WARE IN "amplxl" "input2.xlsx": WARE <- [WARE], Wcap;
+table DAYH IN "amplxl" "input2.xlsx": DAYH <- [DAYH], LAH;
+table DAYD IN "amplxl" "input2.xlsx": DAYD <- [DAYD];
+table TRANS IN "amplxl" "input2.xlsx": TRANS <- [TRANS];
+table RES IN "amplxl" "input2.xlsx": [], KTC, KTW, Clabor, MOP;
+table PLOT IN "amplxl" "input2.xlsx": PLOT <- [PLOT], Dcrop, AP, LH;
+table QUAL IN "amplxl" "input2.xlsx": QUAL <- [QUAL];
+table FAC IN "amplxl" "input2.xlsx": FAC <- [FAC], KPF;
+table CUST IN "amplxl" "input2.xlsx": CUST <- [CUST], LT;
+table DC IN "amplxl" "input2.xlsx": DC <- [DC], Dcap;
+table EH IN "amplxl" "input2.xlsx": [DAYH,PLOT,SCHE], SH, EH;
+table FREQ IN "amplxl" "input2.xlsx": [SCHE], Freq;
+#####
+table PKO IN "amplxl" "input2.xlsx" "verbose": [PROD,QUAL], PKO;
+table WIR IN "amplxl" "input2.xlsx": [PROD,QUAL], WIR;
+table PWR IN "amplxl" "input2.xlsx": [PROD,QUAL], PWR;
+table DCIR IN "amplxl" "input2.xlsx": [PROD,QUAL], DCIR;
+table WDCR IN "amplxl" "input2.xlsx": [PROD,QUAL], WDCR;
+######
+table DW IN "amplxl" "input2.xlsx": [DAYD,PROD,CUST], DW, PC;
+
+###### COL TABLES INPUTTED HERE
+param nCOL integer > 0;
+#table COL {c in 1..nCOL} IN "amplxl" ("C:\Users\rsuthar\Dropbox (UFL)\model2\MC\MCtestbatch\test\" & STRING & c & "test.xlsx") : [DAYD,CROP,QUAL], COL, PROB;
+table COL {c in 1..nCOL} IN "amplxl" ("C:\Users\rsuthar\Dropbox (UFL)\model2\MC\MCtestbatch\" & STRING & "\" & STRING & c & "test.xlsx") : [DAYD,CROP,QUAL], COL, PROB;
+#table COL {c in 1..nCOL} IN "amplxl" ("Colrealistic.xlsx") : [DAYD,CROP,QUAL], COL;
+#table PROB IN "amplxl" "input2.xlsx": [DAYD,CROP,QUAL], PROB;
+table SL IN "amplxl" "input2.xlsx": [PROD,QUAL], SL; 
+
+table VQ IN "amplxl" "input2.xlsx" "verbose" : [SCHE,CROP,QUAL], VQ;
+table VG IN "amplxl" "input2.xlsx" "verbose": [DAYH,PLOT,PROD], VG;
+#add uncertainty to shelf life
+
+#table EH IN "amplxl" "input2.xlsx": [DAYH,PLOT], EH;
+
+
+table CT IN "amplxl" "input2.xlsx": [FAC,CUST,TRANS], T1, Ti,CT;
+table CTPW IN "amplxl" "input2.xlsx": [FAC,WARE,TRANS], T3, TiPW,CTPW;
+table CTPD IN "amplxl" "input2.xlsx": [FAC,DC,TRANS], T4, TiPD,CTPD;
+table CTW IN "amplxl" "input2.xlsx": [WARE,CUST,TRANS], T2, TiW,CTW;
+table CTD IN "amplxl" "input2.xlsx": [DC,CUST,TRANS], TiD,CTD;
+
+####### DAY UNCERTAINTY HERE
+table CTWD IN "amplxl" "input2.xlsx": [WARE,DC,TRANS], T5, TiWD,CTWD;
+#table CTWD {c in 1..nCOL} IN "amplxl" ("C:\Users\Owner\Dropbox (UFL)\model2\MC\CTWD" & c & ".xlsx") : [WARE,DC,TRANS], T5, TiWD,CTWD;
+table CID IN "amplxl" "input2.xlsx": [PROD,DC], CID;
+table CI IN "amplxl" "input2.xlsx": [PROD,WARE], CI;
+table DM IN "amplxl" "input2.xlsx": [DAYD,PROD], PN, DM;
+
+read table PKO;
+read table PWR;
+read table DCIR;
+read table WDCR;
+read table WIR;
+read table DW;
+read table CROP;
+read table PROD;
+read table WARE;
+read table DAYH;
+read table DAYD;
+read table TRANS;
+read table RES;
+read table PLOT;
+read table QUAL;
+read table FAC;
+read table CUST;
+#read table PROB;
+read table EH;
+read table VG;
+read table SL;
+read table FREQ;
+read table VQ;
+read table CTPW;
+read table CT;
+read table CTPD;
+read table CTW;
+read table CTD;
+read table CTWD;
+read table CI;
+read table CID;
+read table DM;
+read table DC;
+
+# Options Selected for CPLEX Solver #
+option solver cplex;
+option eexit -100; 
+
+option cplex_options 'timing=1 timelimit=3600 mipdisplay=2 lpdisplay=1 mipgap=.005 sensitivity';
+
+param sumSD {1..nCOL};
+param sumQH {1..nCOL};
+param sumSWD {1..nCOL};
+param sumSPW {1..nCOL};
+param profit {1..nCOL};
+param overripe {1..nCOL};
+param test1 {1..nCOL};
+param test2 {1..nCOL};
+param PHL {1..nCOL};
+param reject {1..nCOL};
+param boxesreject {1..nCOL};
+
+# nCOL is the number of runs you want for the MC
+let nCOL := 4;
+for {c in 1..nCOL}{
+	read table COL[c];
+	
+	solve;
+	let sumSD[c] := sum {h in DAYH, t in DAYD, k in PROD, q in QUAL, d in DC, i in CUST, r in TRANS} SD[h,t,k,q,d,i,r];
+	let sumQH[c] := sum {h in DAYH,p in PLOT,q in QUAL} QH[h,p,q];
+	let PHL[c] := sum {t in DAYD, k in PROD,q in QUAL} SPOIL[t,k,q];
+	let sumSWD[c] := sum {h in DAYH, t in DAYD, k in PROD, q in QUAL, w in WARE, d in DC, r in TRANS} SWD[h,t,k,q,w,d,r];
+	let sumSPW[c] := sum {h in DAYH,t in DAYD,k in PROD,q in QUAL,f in FAC,w in WARE,r in TRANS} SPW[h,t,k,q,f,w,r];
+	let profit[c] := total_revenue;
+	let overripe[c] := sum{k in PROD,q in QUAL,i in CUST,t in DAYD,d in DC,r in TRANS,h in DAYH:
+	t> h >= t-SL[t,Pcrop[k],q] and r='TM1'} SD[h,t,k,q,d,i,r]*(COL[t-h,Pcrop[k],q]-2)/8;
+	let test1[c] := sum{k in PROD,q in QUAL,i in CUST,t in DAYD,d in DC,r in TRANS,h in DAYH:
+	t> h >= t-SL[t,Pcrop[k],q] and r='TM1'} (COL[t-h,Pcrop[k],q]);
+	let test2[c] := sum{k in PROD,q in QUAL,i in CUST,t in DAYD,d in DC,r in TRANS,h in DAYH:
+	t> h >= t-SL[t,Pcrop[k],q] and r='TM1'} (COL[t-h,Pcrop[k],q]-2);
+	let reject[c] := sum{k in PROD,q in QUAL,i in CUST,t in DAYD,d in DC,r in TRANS,h in DAYH:t> h >= t-SL[t,Pcrop[k],q] 
+	and r='TM1'} SD[h,t,k,q,d,i,r]*PC[t,k,i]*PROB[t-h,Pcrop[k],q];
+	let boxesreject[c] := sum{k in PROD,q in QUAL,i in CUST,t in DAYD,d in DC,r in TRANS,h in DAYH:t> h >= t-SL[t,Pcrop[k],q] 
+	and r='TM1'} SD[h,t,k,q,d,i,r]*PROB[t-h,Pcrop[k],q];	
+	display c;
+}
+
+table SUMSD OUT "amplxl" ("testPHLreal" & STRING & ".xlsx") "verbose=1": [run], PHL, overripe, test1,  sumQH, sumSPW, sumSWD, sumSD, profit;
+
+write table SUMSD;
